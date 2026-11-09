@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neuburg an der Donau – Critical Play Simulator</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="h-full flex flex-col overflow-hidden select-none font-sans bg-slate-950">
+
+  <!-- TOP HEADER / NAV -->
+  <header class="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4 z-30 shrink-0 shadow-md">
+    <!-- Left: Branding -->
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-emerald-600 flex items-center justify-center shadow border border-amber-400/30">
+        <i data-lucide="map" class="w-5 h-5 text-white"></i>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2">
+            Neuburg an der Donau
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Critical Play</span>
+          </h1>
+          <span class="text-xs text-slate-400 font-mono hidden sm:inline">| 523 Playable Tiles (8x6 km, 250m Grid)</span>
+        </div>
+        <p class="text-xs text-slate-400">Regional Planning Game by Martin Geiger &bull; 10 Spatial Actors &bull; Consequence Engine</p>
+      </div>
+    </div>
+
+    <!-- Center: 5-Year / 10-Year Phase Indicator -->
+    <div class="flex items-center gap-2 bg-slate-800/90 rounded-xl px-3.5 py-1.5 border border-slate-700/80 text-xs">
+      <div class="flex items-center gap-1.5">
+        <i data-lucide="calendar" class="w-4 h-4 text-emerald-400"></i>
+        <span class="text-slate-400">Current Phase:</span>
+        <span id="current-phase-badge" class="font-bold text-amber-400 font-mono text-sm">Round 1 • Year 5 (2025–2030)</span>
+      </div>
+    </div>
+
+    <!-- Right: Milestone Review & Reset Actions -->
+    <div class="flex items-center gap-2">
+      <!-- 10-Year Milestone Review Trigger -->
+      <button id="btn-open-milestone" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold border border-indigo-400/30 shadow transition" title="View 10-Year Milestone Review">
+        <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+        <span>10-Year Review</span>
+      </button>
+
+      <!-- Protest Chips Tracker Overview Trigger -->
+      <button id="btn-open-chips-tracker" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-950/80 hover:bg-red-900 text-red-200 text-xs font-semibold border border-red-700/50 shadow transition" title="Actor Protest Chips Status">
+        <i data-lucide="alert-octagon" class="w-4 h-4 text-red-400"></i>
+        <span>Protest Chips</span>
+      </button>
+
+      <!-- Reset Game -->
+      <button id="btn-reset-game" class="p-2 rounded-xl bg-slate-800 hover:bg-red-900/60 text-slate-300 hover:text-red-300 border border-slate-700 transition" title="Reset Game Board">
+        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE -->
+  <main class="flex-1 flex overflow-hidden relative">
+
+    <!-- LEFT: MAP PLAYING FIELD (CLEAN, NO DOUBLE LINES) -->
+    <section class="flex-1 flex flex-col bg-slate-950 relative overflow-hidden">
+
+      <!-- Map Toolbar Overlay -->
+      <div class="absolute top-3 left-3 z-20 flex items-center gap-2 bg-slate-900/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 shadow-xl">
+        <!-- Coordinate Search -->
+        <div class="relative flex items-center">
+          <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5"></i>
+          <input id="input-tile-search" type="text" placeholder="Tile e.g. C7..." maxlength="4" class="w-28 bg-slate-950 text-xs text-white uppercase font-mono pl-8 pr-2 py-1 rounded-lg border border-slate-700 focus:outline-none focus:border-amber-400">
+        </div>
+
+        <div class="w-px h-4 bg-slate-800"></div>
+
+        <!-- Zoom Controls -->
+        <button id="btn-zoom-in" class="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white" title="Zoom In">
+          <i data-lucide="zoom-in" class="w-4 h-4"></i>
+        </button>
+        <button id="btn-zoom-out" class="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white" title="Zoom Out">
+          <i data-lucide="zoom-out" class="w-4 h-4"></i>
+        </button>
+        <button id="btn-zoom-reset" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-mono" title="Reset View">
+          100%
+        </button>
+
+        <div class="w-px h-4 bg-slate-800"></div>
+
+        <!-- Toggle Placed Tokens -->
+        <button id="btn-toggle-tokens" class="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-medium flex items-center gap-1">
+          <i data-lucide="layers" class="w-3.5 h-3.5"></i> Occupied Plots
+        </button>
+      </div>
+
+      <!-- MAP VIEWPORT CONTAINER -->
+      <div id="map-viewport" class="w-full h-full relative cursor-grab active:cursor-grabbing overflow-hidden">
+        <svg id="map-svg" viewBox="0 0 2384 1684" class="w-full h-full" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <filter id="tile-glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#38bdf8" flood-opacity="0.9"/>
+            </filter>
+          </defs>
+          <g id="map-world">
+            <!-- Authentic Background Image with printed grid lines -->
+            <image href="assets/map.png" x="0" y="0" width="2384" height="1684" />
+            <!-- Transparent interactive cells (strictly highlight on hover/click - NO double lines!) -->
+            <g id="grid-layer"></g>
+            <!-- Placed Tokens Layer -->
+            <g id="tokens-layer"></g>
+            <!-- Selection Layer -->
+            <g id="selection-layer"></g>
+          </g>
+        </svg>
+
+        <!-- Floating Map Hover Tooltip -->
+        <div id="tile-tooltip" class="absolute pointer-events-none hidden z-30 bg-slate-900/95 backdrop-blur-md text-white text-xs px-3 py-2 rounded-xl shadow-2xl border border-slate-700 max-w-xs">
+          <div class="flex items-center justify-between gap-2 border-b border-slate-700/60 pb-1 mb-1">
+            <span id="tooltip-coord" class="font-bold font-mono text-amber-400 text-sm">C7</span>
+            <span id="tooltip-district" class="text-xs text-slate-400">Ried / Bittenbrunn</span>
+          </div>
+          <div id="tooltip-type" class="text-slate-300 text-xs mb-1">Residential Area &bull; 6.25 Hectares</div>
+          <div id="tooltip-status" class="text-xs text-slate-400 italic">Unclaimed Plot</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: DEDICATED CONSEQUENCE COCKPIT -->
+    <aside id="inspector-panel" class="w-full sm:w-[500px] lg:w-[560px] bg-slate-900/95 border-l border-slate-800 flex flex-col z-20 shrink-0 shadow-2xl overflow-y-auto">
+      
+      <!-- Panel Header: Selected Tile Info -->
+      <div class="p-4 bg-slate-950/80 border-b border-slate-800 space-y-2">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div id="inspector-badge" class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center font-mono font-bold text-lg text-white shadow border border-amber-400/40">
+              C7
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 id="inspector-coord-title" class="font-bold text-white text-sm">Tile C7</h3>
+                <span id="inspector-district-badge" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">Ried / Bittenbrunn</span>
+              </div>
+              <p id="inspector-land-use" class="text-xs text-slate-400 mt-0.5">Residential Area &bull; 250m x 250m (6.25 ha)</p>
+            </div>
+          </div>
+          <span id="inspector-owner-pill" class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 font-mono">
+            Unclaimed
+          </span>
+        </div>
+      </div>
+
+      <!-- Main Step-by-Step Content -->
+      <div class="p-4 space-y-4 flex-1">
+
+        <!-- 1. SELECT ACTOR (Right-click or chip click to toggle 🔴) -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+              1. Choose Actor for this Plot:
+            </label>
+            <span class="text-[11px] text-amber-400">Right-click or chip click to toggle 🔴</span>
+          </div>
+          <div id="actors-selector-grid" class="grid grid-cols-2 gap-1.5">
+            <!-- Dynamically populated 10 actor cards with chip indicators -->
+          </div>
+        </div>
+
+        <!-- 2. SELECT ACTION (SHORT TITLES, GROUPED BY ACTIVE ACTOR) -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider" id="action-select-label">
+              2. Proposed Action for Actor:
+            </label>
+            <button id="btn-toggle-custom-action" class="flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded-lg border border-amber-500/30 transition">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>Custom Action</span>
+            </button>
+          </div>
+
+          <!-- Predefined Action Dropdown with All 30 Actions Shortened -->
+          <div id="action-dropdown-container">
+            <select id="select-action-catalog" class="w-full bg-slate-950 text-slate-200 text-xs rounded-xl p-2.5 border border-slate-700 focus:outline-none focus:border-amber-400 shadow-inner font-medium">
+              <!-- Dynamically populated from game catalog grouped by selected actor -->
+            </select>
+          </div>
+
+          <!-- Custom Action Drawer (Hidden by default, opened via Plus Button) -->
+          <div id="custom-action-drawer" class="hidden bg-slate-950 p-3 rounded-xl border border-amber-500/40 space-y-2 mt-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-amber-400 flex items-center gap-1">
+                <i data-lucide="pen-tool" class="w-3.5 h-3.5"></i> Custom Action Entry
+              </span>
+              <button id="btn-close-custom-action" class="text-slate-400 hover:text-white p-1">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+            <input id="input-custom-action-title" type="text" placeholder="Short action title..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-amber-400">
+            <textarea id="input-custom-action-desc" rows="2" placeholder="Spatial impact & consequences for Neuburg..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-amber-400"></textarea>
+            <button id="btn-apply-custom-action" class="w-full py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs">
+              Apply Custom Action to Sliders
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. LIVE CONSEQUENCE REPORT BOX WITH AT-A-GLANCE GRAPHIC METERS & SLIDERS -->
+        <div class="bg-gradient-to-b from-slate-800/90 to-slate-900/95 rounded-2xl p-4 border border-amber-500/30 shadow-xl space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-700/80 pb-2">
+            <div class="flex items-center gap-2">
+              <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></div>
+              <h4 class="font-bold text-white text-xs tracking-wider uppercase">Live Consequences for Neuburg</h4>
+            </div>
+            <span id="consequence-severity" class="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40">
+              Impact Calculated
+            </span>
+          </div>
+
+          <!-- Headline & Spatial Impact Narrative -->
+          <div class="bg-slate-950/80 rounded-xl p-3 border border-slate-800 space-y-1.5">
+            <div class="text-xs text-slate-400 font-medium">Outcome according to Regional Game:</div>
+            <p id="live-consequence-headline" class="text-sm font-bold text-amber-300 leading-snug">
+              ...
+            </p>
+            <p id="live-consequence-spatial" class="text-xs text-slate-300 leading-relaxed border-t border-slate-800/80 pt-1.5">
+              Spatial Footprint: ...
+            </p>
+          </div>
+
+          <!-- PROPOSED IMPACT PROMPT BANNER (YES / NO / CUSTOMIZE) -->
+          <div class="bg-slate-950 p-2.5 rounded-xl border border-indigo-500/40 flex items-center justify-between gap-2">
+            <div class="flex items-center gap-1.5 min-w-0">
+              <i data-lucide="sparkles" class="w-4 h-4 text-amber-400 shrink-0"></i>
+              <div class="truncate text-xs">
+                <span class="text-slate-300">System Proposal:</span>
+                <span id="proposal-status-badge" class="font-bold text-emerald-400 ml-1">Suggested Baseline</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button id="btn-reset-proposal" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs border border-slate-700 transition flex items-center gap-1" title="Reset sliders to game suggestions">
+                <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Reset
+              </button>
+            </div>
+          </div>
+
+          <!-- 6 COLORFUL GRAPHIC METERS WITH -100% to +100% SLIDERS (IN 5% STEPS) -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                Impact Overview & Sliders (-100% to +100%, 5% steps):
+              </span>
+              <span class="text-[11px] text-amber-400">At-a-glance controls</span>
+            </div>
+            <!-- Compact 2-column grid showing all 6 clearly on one screen -->
+            <div class="grid grid-cols-2 gap-2 text-xs" id="metrics-sliders-container">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Actor Conflict & Zero-Tolerance Radar -->
+          <div class="pt-2 border-t border-slate-700/80">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Actor Conflicts & Red Lines:</span>
+              <span id="trigger-alarm-count" class="text-xs px-2 py-0.5 rounded bg-red-900/60 text-red-300 font-bold border border-red-700/50 hidden">
+                ⚠️ RED LINE HIT!
+              </span>
+            </div>
+            <div id="actors-reactions-list" class="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+              <!-- List of actors triggered -->
+            </div>
+          </div>
+
+          <!-- SAVE ACTION FOR THIS ACTOR BUTTON -->
+          <button id="btn-save-actor-move" class="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 transition">
+            <i data-lucide="save" class="w-4 h-4"></i>
+            <span id="btn-save-label">Save Action for this Actor</span>
+          </button>
+        </div>
+
+        <!-- 4. SAVED ACTIONS THIS ROUND & LOCK-IN ROUND BUTTON -->
+        <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+              <i data-lucide="check-square" class="w-4 h-4 text-emerald-400"></i>
+              <span>Saved Actions in Current Round:</span>
+            </span>
+            <span id="round-moves-count" class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-800 text-amber-400">
+              0 Actors
+            </span>
+          </div>
+
+          <div id="round-saved-moves-list" class="space-y-1.5 text-xs">
+            <div class="text-slate-500 italic p-2 text-center">No actions saved yet. Select a tile, configure the action, and click save.</div>
+          </div>
+
+          <!-- Lock-in Round Button -->
+          <button id="btn-lock-round" class="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 transition">
+            <i data-lucide="lock" class="w-4 h-4"></i>
+            <span id="btn-lock-round-text">Log In Round 1 (after 5 Years)</span>
+          </button>
+        </div>
+
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- MODAL: 10-YEAR MILESTONE REVIEW (DETAILED NARRATIVE REPORT) -->
+  <div id="modal-milestone" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow">
+            <i data-lucide="award" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-white text-base" id="milestone-title">10-Year Milestone Review: Neuburg in Year 2035</h3>
+            <p class="text-xs text-slate-400">Decade Evaluation & Spoken Narrative</p>
+          </div>
+        </div>
+        <button id="btn-close-milestone" class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Simple Spoken Story, Tailored Improvements & Protest Chips) -->
+      <div class="p-6 overflow-y-auto space-y-5 flex-1 text-xs">
+        
+        <!-- SECTION 1: SPOKEN STORY (READ ALOUD TO THE TABLE) -->
+        <div class="bg-gradient-to-br from-indigo-950/80 via-slate-900 to-slate-950 p-5 rounded-2xl border border-indigo-500/40 space-y-2.5 shadow-md">
+          <div class="flex items-center justify-between text-indigo-300">
+            <div class="flex items-center gap-2 font-bold text-sm">
+              <i data-lucide="volume-2" class="w-4 h-4 text-amber-400"></i>
+              <span id="milestone-story-heading">What Happened in Neuburg (Read Aloud to Group):</span>
+            </div>
+            <span class="text-[11px] font-mono text-indigo-400 bg-indigo-950/80 px-2.5 py-0.5 rounded-full border border-indigo-800">
+              📢 Read Aloud
+            </span>
+          </div>
+          <div id="milestone-narrative-story" class="text-slate-100 leading-relaxed text-sm space-y-2 font-serif sm:text-base">
+            <!-- Simple spoken paragraphs injected here -->
+          </div>
+        </div>
+
+        <!-- SECTION 2: WHAT MUST WE IMPROVE FOR THE NEXT ROUND? (TAILORED & SIMPLE) -->
+        <div class="bg-slate-950 p-4 rounded-2xl border border-amber-500/30 space-y-2.5">
+          <div class="flex items-center gap-2 text-amber-300 font-bold text-sm">
+            <i data-lucide="compass" class="w-4 h-4 text-amber-400"></i>
+            <span id="milestone-improve-heading">What Must We Improve for the Next Round?</span>
+          </div>
+          <div id="milestone-recommendations-list" class="space-y-2 text-xs text-slate-200 leading-relaxed">
+            <!-- Bullet points of key improvements -->
+          </div>
+        </div>
+
+        <!-- SECTION 3: PROTEST CHIPS & GROUP HARMONY -->
+        <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-white text-xs uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="users" class="w-4 h-4 text-amber-400"></i>
+              <span>Protest Chips Overview (Max 3 = Elimination):</span>
+            </span>
+            <span id="milestone-chips-summary-pill" class="text-xs px-2.5 py-0.5 rounded-full font-bold"></span>
+          </div>
+          <div id="milestone-actors-status" class="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
+            <!-- 10 actors chip status -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between">
+        <button id="btn-dismiss-milestone" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">
+          Close
+        </button>
+        <button id="btn-next-decade" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-emerald-600/30">
+          <span>Proceed to Next 10-Year Decade</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PROTEST CHIPS TRACKER (STANDALONE QUICK APPLICATION) -->
+  <div id="modal-chips-tracker" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div class="px-6 py-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-red-900 flex items-center justify-center text-red-200 font-bold">
+            🔴
+          </div>
+          <div>
+            <h3 class="font-bold text-white text-sm">Protest Chips Tracker</h3>
+            <p class="text-xs text-slate-400">Click chips to toggle &bull; 3 Red Chips = Automatic Elimination</p>
+          </div>
+        </div>
+        <button id="btn-close-chips-tracker" class="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-3 max-h-[70vh] overflow-y-auto" id="chips-tracker-list">
+        <!-- 10 actors with interactive chip buttons -->
+      </div>
+
+      <div class="px-6 py-3 bg-slate-950 border-t border-slate-800 text-right">
+        <button id="btn-ack-chips-tracker" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold">
+          Done
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTOR RIGHT-CLICK CONTEXT MENU -->
+  <div id="actor-context-menu" class="fixed hidden z-50 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-1.5 text-xs text-slate-200 w-48 space-y-1">
+    <div id="context-actor-name" class="font-bold text-amber-400 px-2 py-1 border-b border-slate-800 truncate">
+      Actor
+    </div>
+    <button id="btn-context-add-chip" class="w-full text-left px-2 py-1.5 rounded-lg hover:bg-red-950/70 text-red-300 flex items-center gap-2 transition">
+      <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+      <span>Add Red Protest Chip (+1)</span>
+    </button>
+    <button id="btn-context-remove-chip" class="w-full text-left px-2 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center gap-2 transition">
+      <span class="w-2.5 h-2.5 rounded-full border border-slate-500"></span>
+      <span>Remove Protest Chip (-1)</span>
+    </button>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
